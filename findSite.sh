@@ -15,18 +15,26 @@ CLEAN_INPUT=$(echo "$1" | tr '[:upper:]' '[:lower:]' | tr -d ':-')
 REGEX_PATTERN=$(echo "$CLEAN_INPUT" | sed 's/../&:/g' | sed 's/:$//')
 
 echo "Searching database for MAC addresses matching pattern: *$REGEX_PATTERN*"
-echo "------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
 
-# Query MongoDB for all matching devices mapping direct text strings
+# Query MongoDB converting the device string hex ID back to an ObjectId for the site collection
 mongo --port 27117 ace --quiet --eval "
     var searchPattern = '$REGEX_PATTERN';
     db.device.find({ 'mac': { '\$regex': searchPattern } }, { 'mac': 1, 'site_id': 1, 'model': 1, 'name': 1 }).forEach(function(dev) {
-        // Look up by matching raw string type directly against the name/id fields
-        var site = db.site.findOne({ 'name': dev.site_id });
-        var siteName = site ? site.desc : 'Unknown Site';
-        var devName = dev.name ? dev.name : 'Unnamed Device';
+        var siteName = 'Unknown Site';
+        var urlString = 'Unknown';
         
-        print('MAC: ' + dev.mac + ' | Model: ' + dev.model + ' | Device Name: ' + devName + ' | SITE: ' + siteName + ' | URL ID: ' + dev.site_id);
+        if (dev.site_id) {
+            // Instantiate a true database ObjectId using the 24-char text string
+            var siteObj = db.site.findOne({ '_id': ObjectId(dev.site_id) });
+            if (siteObj) {
+                siteName = siteObj.desc ? siteObj.desc : 'Unnamed Site';
+                urlString = siteObj.name ? siteObj.name : 'default';
+            }
+        }
+        
+        var devName = dev.name ? dev.name : 'Unnamed Device';
+        print('MAC: ' + dev.mac + ' | Model: ' + dev.model + ' | Name: ' + devName + ' | SITE: ' + siteName + ' | URL STRING: ' + urlString);
     });
 "
-echo "------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
