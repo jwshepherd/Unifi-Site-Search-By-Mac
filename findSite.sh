@@ -12,16 +12,16 @@ fi
 CLEAN_INPUT=$(echo "$1" | tr '[:upper:]' '[:lower:]' | tr -d ':-')
 
 # Format the cleaned input into a flexible regex string
-# This inserts a voluntary colon pattern between characters to match UniFi's "aa:bb:cc" format
 REGEX_PATTERN=$(echo "$CLEAN_INPUT" | sed 's/../&:/g' | sed 's/:$//')
 
 echo "Searching database for MAC addresses matching pattern: *$REGEX_PATTERN*"
 echo "------------------------------------------------------------"
 
-# Query MongoDB for all matching devices and loop through them
+# Query MongoDB for all matching devices using ES5 compatible syntax
 mongo --port 27117 ace --quiet --eval "
-    db.device.find({mac: {$regex: '$REGEX_PATTERN'}}, {mac: 1, site_id: 1, model: 1, name: 1}).forEach(function(dev) {
-        var site = db.site.findOne({_id: dev.site_id}, {desc: 1});
+    var searchPattern = '$REGEX_PATTERN';
+    db.device.find({ 'mac': { '\$regex': searchPattern } }, { 'mac': 1, 'site_id': 1, 'model': 1, 'name': 1 }).forEach(function(dev) {
+        var site = db.site.findOne({ '_id': dev.site_id }, { 'desc': 1 });
         var siteName = site ? site.desc : 'Unknown Site';
         var devName = dev.name ? dev.name : 'Unnamed Device';
         
