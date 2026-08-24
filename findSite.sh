@@ -21,7 +21,7 @@ echo "------------------------------------------------------------"
 mongo --port 27117 ace --quiet --eval "
     var searchPattern = '$REGEX_PATTERN';
     db.device.find({ 'mac': { '\$regex': searchPattern } }, { 'mac': 1, 'site_id': 1, 'model': 1, 'name': 1 }).forEach(function(dev) {
-        var site = db.site.findOne({ '_id': dev.site_id }, { 'desc': 1 });
+        var site = db.site.findOne({ '_id': ObjectId(dev.site_id) }, { 'desc': 1 });
         var siteName = site ? site.desc : 'Unknown Site';
         var devName = dev.name ? dev.name : 'Unnamed Device';
         
