@@ -17,15 +17,16 @@ REGEX_PATTERN=$(echo "$CLEAN_INPUT" | sed 's/../&:/g' | sed 's/:$//')
 echo "Searching database for MAC addresses matching pattern: *$REGEX_PATTERN*"
 echo "------------------------------------------------------------"
 
-# Query MongoDB for all matching devices using ES5 compatible syntax
+# Query MongoDB for all matching devices mapping direct text strings
 mongo --port 27117 ace --quiet --eval "
     var searchPattern = '$REGEX_PATTERN';
     db.device.find({ 'mac': { '\$regex': searchPattern } }, { 'mac': 1, 'site_id': 1, 'model': 1, 'name': 1 }).forEach(function(dev) {
-        var site = db.site.findOne({ '_id': ObjectId(dev.site_id) }, { 'desc': 1 });
+        // Look up by matching raw string type directly against the name/id fields
+        var site = db.site.findOne({ 'name': dev.site_id });
         var siteName = site ? site.desc : 'Unknown Site';
         var devName = dev.name ? dev.name : 'Unnamed Device';
         
-        print('MAC: ' + dev.mac + ' | Model: ' + dev.model + ' | Device Name: ' + devName + ' | SITE: ' + siteName);
+        print('MAC: ' + dev.mac + ' | Model: ' + dev.model + ' | Device Name: ' + devName + ' | SITE: ' + siteName + ' | URL ID: ' + dev.site_id);
     });
 "
 echo "------------------------------------------------------------"
